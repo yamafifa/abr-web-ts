@@ -26,6 +26,7 @@ npm run dev          # http://127.0.0.1:3000
 ```
 
 - 手元の PC からだけ開けるように、`127.0.0.1` で待ち受けます
+- 起動と停止の詳しいやり方は [docs/start-stop.md](docs/start-stop.md) にあります
 - 編集・削除したデータは、abr-batch で `npm run import:v3`（約 15 秒）を実行すると元に戻せます
 
 ## 構成（クリーンアーキテクチャ）
