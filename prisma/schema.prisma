@@ -1,0 +1,38 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+/// 住居表示-住居マスター（mt_rsdtdsp_rsdt）
+/// テーブルは abr-batch で作ったものを共用する（abr-batch の prisma/schema.prisma と同じ定義）
+model RsdtdspRsdt {
+  lgCode          String    @map("lg_code") @db.Char(6)
+  machiazaId      String    @map("machiaza_id") @db.Char(7)
+  blkId           String    @map("blk_id") @db.VarChar(3)
+  rsdtId          String    @map("rsdt_id") @db.VarChar(3)
+  rsdt2Id         String    @default("") @map("rsdt2_id") @db.VarChar(5)
+  city            String    @db.VarChar(20)
+  ward            String?   @db.VarChar(20)
+  oazaCho         String?   @map("oaza_cho") @db.VarChar(80)
+  chome           String?   @db.VarChar(20)
+  koaza           String?   @db.VarChar(80)
+  machiazaDist    String?   @map("machiaza_dist") @db.VarChar(10)
+  blkNum          String?   @map("blk_num") @db.VarChar(20)
+  rsdtNum         String?   @map("rsdt_num") @db.VarChar(20)
+  rsdtNum2        String?   @map("rsdt_num2") @db.VarChar(20)
+  basicRsdtDiv    String?   @map("basic_rsdt_div") @db.VarChar(1)
+  rsdtAddrFlg     String?   @map("rsdt_addr_flg") @db.VarChar(1)
+  rsdtAddrMtdCode String?   @map("rsdt_addr_mtd_code") @db.VarChar(1)
+  statusFlg       String?   @map("status_flg") @db.VarChar(1)
+  efctDate        DateTime? @map("efct_date") @db.Date
+  abltDate        DateTime? @map("ablt_date") @db.Date
+  srcCode         String?   @map("src_code") @db.VarChar(2)
+  remarks         String?   @db.VarChar(255)
+
+  @@id([lgCode, machiazaId, blkId, rsdtId, rsdt2Id])
+  @@map("mt_rsdtdsp_rsdt")
+}
