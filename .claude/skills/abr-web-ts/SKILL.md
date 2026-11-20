@@ -96,6 +96,7 @@ P=$(ss -ltnp | grep :3000 | grep -o 'pid=[0-9]*' | cut -d= -f2); [ -n "$P" ] && 
 | 「%」で検索すると全件が出る | Prisma の `contains` は `%`・`_` をそのまま LIKE に渡す。`escapeLike` で `\%`・`\_`・`\\` にする |
 | `npm install` が `Cannot read properties of null (reading 'edgesOut')` で止まる | npm 本体のバグ。peer dependency の版が食い違うと起きる。① create-next-app が入れた `@types/node` 20 系を、Vitest が求める 22 以上に上げる、② Vitest は peer と同じ版（5.1.1）にする、で入った |
 | `curl` で Server Action にフォームを送ると、空のフォームとして届く | React は FormData を `_1_city` のように **`_` で始まる名前**で送る（`1_city` ではない）。手書きせず、`scripts/call-action.cjs`（`encodeReply` を使う）で送る |
+| lint で `.claude/skills/.../call-action.cjs` の `require()` がエラー | SKILL の確認用スクリプトは CommonJS で、アプリのコードではない。`eslint.config.mjs` の `globalIgnores` に `.claude/**` を入れた。SKILL にファイルを足したら lint も流す |
 | lint の `react-hooks/set-state-in-effect` エラー | `useEffect` の中で同期的に `setState` しない。お知らせ（Flash）は、親で `key` を変えて作り直す形にした |
 | 続けて同じ操作をすると、お知らせが出ない | redirect 先の URL に `n=<時刻>` を付けて、Flash の `key` にする |
 | `PageProps<"/rsdt/[id]">` が型エラー | ルートの型は自動で作られる。新しいルートを足したら `npx next typegen` を実行する |

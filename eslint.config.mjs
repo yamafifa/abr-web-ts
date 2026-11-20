@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Claude Code の SKILL の確認用スクリプト（CommonJS の Node.js スクリプトで、アプリのコードではない）
+    ".claude/**",
   ]),
 ]);
 
