@@ -4,16 +4,17 @@ import Form from "next/form";
 import type { RsdtSearchCriteria } from "@/domain/rsdt/rsdt-repository";
 import { PER_PAGE_OPTIONS } from "@/presentation/search-params";
 
-type Props = { criteria: RsdtSearchCriteria; perPage: number };
+/** action は送り先（DB 検索は "/"、Elasticsearch 検索は "/es"） */
+type Props = { criteria: RsdtSearchCriteria; perPage: number; action: "/" | "/es" };
 
 const inputClass =
   "w-full rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2 text-sm text-white placeholder:text-slate-600 outline-none transition focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-400/20";
 
 /** 検索条件のフォーム。GET で送るので、条件は URL に残る（ページ番号は 1 に戻る） */
-export function SearchForm({ criteria, perPage }: Props) {
+export function SearchForm({ criteria, perPage, action }: Props) {
   const { city, town, chome, blkNum, rsdtNum } = criteria;
   return (
-    <Form action="/" className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-[1fr_1fr_9rem_6rem_6rem_auto_auto] sm:items-end">
+    <Form action={action} className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-[1fr_1fr_9rem_6rem_6rem_auto_auto] sm:items-end">
       <label className="block">
         <span className="mb-1.5 block text-xs font-medium tracking-wide text-slate-400">市区町村</span>
         <input name="city" defaultValue={city} placeholder="例：世田谷" className={inputClass} />

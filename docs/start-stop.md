@@ -11,7 +11,13 @@ cd ~/work/abr-batch
 npm run db:up
 ```
 
-すでに動いていれば不要です。
+すでに動いていれば不要です。Elasticsearch と Kibana も一緒に起動します。
+
+Elasticsearch 検索（`/es`）を使うときは、インデックスを作っておきます（約 1 分。DB を変えたあとに、もう一度実行すると反映されます）。
+
+```bash
+npm run es:index
+```
 
 ### 2. アプリを起動する（abr-web-ts のフォルダで）
 

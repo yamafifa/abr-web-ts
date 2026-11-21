@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Geist, Geist_Mono, Noto_Sans_JP } from "next/font/google";
+import { Nav } from "@/components/nav";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 ABR 住居マスター
               </span>
             </Link>
+            <Nav />
             <span className="ml-auto rounded-full border border-white/10 px-2.5 py-0.5 font-mono text-xs text-slate-400">
               mt_rsdtdsp_rsdt
             </span>
