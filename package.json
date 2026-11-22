@@ -3,15 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -H 127.0.0.1",
-    "build": "next build",
-    "start": "next start -H 127.0.0.1",
+    "dev": "TZ=Asia/Tokyo next dev -H 127.0.0.1",
+    "build": "TZ=Asia/Tokyo next build",
+    "start": "TZ=Asia/Tokyo next start -H 127.0.0.1",
     "lint": "eslint",
     "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
-    "test": "vitest run --project unit",
-    "test:watch": "vitest --project unit",
-    "test:db": "vitest run --project db"
+    "test": "TZ=Asia/Tokyo vitest run --project unit",
+    "test:watch": "TZ=Asia/Tokyo vitest --project unit",
+    "test:db": "TZ=Asia/Tokyo vitest run --project db"
   },
   "dependencies": {
     "@prisma/adapter-mariadb": "7.10.1",
