@@ -8,9 +8,16 @@ const ITEMS = [
   { label: "Elasticsearch 検索", href: "/es" },
 ] as const;
 
-/** DB 検索と Elasticsearch 検索の切り替え（今の画面を目立たせる） */
+/**
+ * DB 検索と Elasticsearch 検索の切り替え（今の画面を目立たせる）
+ * usePathname は先読み（prerender）のときに値が決まらないので、layout では Suspense で囲み、
+ * 待つ間は NavLinks（どれも目立たせない）を出す。囲まないと next build が失敗する
+ */
 export function Nav() {
-  const pathname = usePathname();
+  return <NavLinks pathname={usePathname()} />;
+}
+
+export function NavLinks({ pathname }: { pathname: string | null }) {
   return (
     <nav className="ml-6 flex gap-1 text-sm">
       {ITEMS.map(({ label, href }) => (
