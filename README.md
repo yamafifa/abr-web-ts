@@ -10,7 +10,7 @@ ABR（アドレス・ベース・レジストリ）の住居表示-住居マス�
 
 ## 検索の速さ：DB 検索と Elasticsearch 検索
 
-本番モード（`npm run build` のあと `next start`）で画面全体を返すまでの時間（3 回測った値）：
+本番モード（`npm run build` のあと `next start`）で画面全体を返すまでの時間（2026-11-23 に、3 回測った値）：
 
 | 条件 | DB 検索（`/`） | Elasticsearch 検索（`/es`） |
 |---|---|---|
