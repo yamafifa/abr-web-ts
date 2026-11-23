@@ -1,24 +1,37 @@
 # abr-web-ts
 
-ABR（アドレス・ベース・レジストリ）の住居表示-住居マスター（`mt_rsdtdsp_rsdt`、東京都 1,752,573 件）を検索して、一覧表示・編集・削除する Web アプリです。
-勉強用に、同じものを TypeScript・Ruby on Rails・PHP Laravel で作るうちの TypeScript 版です。
+ABR（アドレス・ベース・レジストリ）の住居表示-住居マスター（`mt_rsdtdsp_rsdt`、東京都 1,752,573 件）を検索して、一覧表示・編集・削除する Web アプリの TypeScript（Next.js）版です。
+[abr-batch](https://github.com/yamafifa/abr-batch) で確かめた「大量のデータを部分一致で探すなら、元の DB ではなく、検索用のデータを作る」の効果を、DB 検索と Elasticsearch 検索の画面で比べられるようにしています。
 
 - Next.js 16（App Router）＋ Prisma 7 ＋ Tailwind CSS 4 ＋ Vitest 5
 - クリーンアーキテクチャで、画面・ユースケース・ドメイン・DB の層に分けています
 - DB は [abr-batch](https://github.com/yamafifa/abr-batch) の MySQL を共用します（テーブルも abr-batch で作ったもの）
+- ほかの版：[Ruby on Rails](https://github.com/yamafifa/abr-web-rails)・[Laravel](https://github.com/yamafifa/abr-web-laravel)・[Symfony](https://github.com/yamafifa/abr-web-symfony)・[Spring Boot](https://github.com/yamafifa/abr-web-spring)
+
+## 検索の速さ：DB 検索と Elasticsearch 検索
+
+`next dev` で画面全体を返すまでの時間（3 回測った値）：
+
+| 条件 | DB 検索（`/`） | Elasticsearch 検索（`/es`） |
+|---|---|---|
+| 市区町村「町田」＋町字「木曽」 | 1.82〜1.83 秒 | 0.074〜0.080 秒 |
+| 町字「西」 | 0.77〜0.80 秒 | 0.082〜0.091 秒 |
+| 条件なし | 0.28〜0.29 秒 | 0.072〜0.074 秒 |
+
+- DB 検索は `city LIKE '%町田%'` のような部分一致です。前に `%` が付く LIKE は MySQL のインデックスでは速くならないので、毎回 175 万行を全部読みます
+- Elasticsearch 検索は、abr-batch の `npm run es:index` で作った検索用のインデックスから探します。条件の意味と画面は DB 検索と同じです
+- 詳しくは下の「[Elasticsearch 検索](#elasticsearch-検索)」を参照
 
 ## できること
 
-- **検索**：市区町村（`city`・`ward`）、町字（`oaza_cho`・`koaza`）、丁目（`chome`）の部分一致と、`blk_num`・`rsdt_num` の完全一致。条件は URL に残ります
-- **一覧**：主キー順。1 ページ 15 件（30・50・100 件も選べます）。ページャー付き
-- **編集**：主キー以外の 17 列。「更新」を押すと、変わった項目をモーダルで見せてから保存します
-- **削除**：一覧と編集画面から。モーダルで確認してから削除します
-- **Elasticsearch 検索**：`/es`。条件の意味と画面は DB 検索と同じで、abr-batch の `npm run es:index` で作った Elasticsearch のインデックスから探します。下の「Elasticsearch 検索」を参照
+- **検索**：市区町村・町字・丁目などで探して、一覧を出します。DB 検索（`/`）と Elasticsearch 検索（`/es`）の 2 つがあり、条件と画面は同じです
+- **編集・削除**：abr-batch の差分更新バッチ（v4）のテストデータを作りやすくするために付けました
 
 ## 動かし方
 
 1. abr-batch で DB を起動して、データを入れておく（abr-batch の README「動かし方」を参照）
-2. このリポジトリで：
+2. Elasticsearch 検索を使うときは、abr-batch で `npm run es:index` を実行しておく（約 1 分）
+3. このリポジトリで：
 
 ```bash
 cp .env.example .env
@@ -32,19 +45,11 @@ npm run dev          # http://127.0.0.1:3000
 
 ## Elasticsearch 検索
 
-ほかの 4 つの版と同じものです。DB 検索（`/`）はそのまま残して、Elasticsearch で探す一覧（`/es`）を別に作りました。上のメニューで切り替えられ、それぞれの画面に「同じ条件で〜検索」のリンクがあります。
-
-- **速さ**（`next dev` で画面全体を返すまで、3 回測った値）
-
-| 条件 | DB 検索 | Elasticsearch 検索 |
-|---|---|---|
-| 市区町村「町田」＋町字「木曽」 | 1.82〜1.83 秒 | 0.074〜0.080 秒 |
-| 町字「西」 | 0.77〜0.80 秒 | 0.082〜0.091 秒 |
-| 条件なし | 0.28〜0.29 秒 | 0.072〜0.074 秒 |
+DB 検索（`/`）はそのまま残して、Elasticsearch で探す一覧（`/es`）を別に作りました。上のメニューで切り替えられ、それぞれの画面に「同じ条件で〜検索」のリンクがあります。
 
 - **中身は `npm run es:index` を実行した時点の DB のコピー**です。画面に作成日時を出しています。この画面から編集・削除すると DB は変わりますが、Elasticsearch は次に `es:index` を実行するまで古いままです。食い違ったときは、DB 検索の画面と見比べてください
 - **ページ送りは「最初へ・前へ・次へ・最後へ」**で、ページ番号はありません。Elasticsearch は、先頭から 10,000 件より先へページ番号で進めないため、主キーの続きから取る方法（search_after）にしました
-- **文字の扱いは MySQL に合わせています**：MySQL（utf8mb4_unicode_ci）は全角と半角、ひらがなとカタカナ、濁点の有無などを同じ文字として扱います。Elasticsearch でも同じ結果になるよう、入れる側（abr-batch の `src/lib/fold.ts`）と探す側（[src/infrastructure/elasticsearch/fold.ts](src/infrastructure/elasticsearch/fold.ts)）で同じように文字をそろえています。処理の中身は abr-batch と同じです。直すときは abr-batch と 5 つの版のすべてを直します
+- **文字の扱いは MySQL に合わせています**：MySQL（utf8mb4_unicode_ci）は全角と半角、ひらがなとカタカナ、濁点の有無などを同じ文字として扱います。Elasticsearch でも同じ結果になるよう、入れる側（abr-batch の `src/lib/fold.ts`）と探す側（[src/infrastructure/elasticsearch/fold.ts](src/infrastructure/elasticsearch/fold.ts)）で同じように文字をそろえています。処理の中身は abr-batch と同じです。直すときは abr-batch と、ほかの版の同じ処理もすべて直します
 - **層の分け方**：検索用インデックスのインターフェース（`RsdtSearchIndex`）を domain に、ページ送りの考え方（`SearchRsdtEs`）を application に、Elasticsearch への接続（`ElasticsearchRsdtSearchIndex`）を infrastructure に置きました。そのため、ページ送りはメモリ上のインデックスでテストできます
 - 公式のクライアントは入れず、fetch で REST API を呼びます。接続先は `.env` の `ES_URL`（無ければ `http://127.0.0.1:9200`）。接続できないときは、画面にエラーの文を出します
 
