@@ -1,7 +1,7 @@
 # abr-web-ts
 
 ABR（アドレス・ベース・レジストリ）の住居表示-住居マスター（`mt_rsdtdsp_rsdt`、東京都 1,752,573 件）を検索して、一覧表示・編集・削除する Web アプリの TypeScript（Next.js）版です。
-[abr-batch](https://github.com/yamafifa/abr-batch) で確かめた「大量のデータを部分一致で探すなら、元の DB ではなく、検索用のデータを作る」の効果を、DB 検索と Elasticsearch 検索の画面で比べられるようにしています。
+[abr-batch](https://github.com/yamafifa/abr-batch) で確かめた「大量のデータを部分一致で探すなら、元の DB ではなく、検索用のデータを作る」という考え方の効果を、DB 検索と Elasticsearch 検索の画面で比べられるようにしています。
 
 - Next.js 16（App Router）＋ Prisma 7 ＋ Tailwind CSS 4 ＋ Vitest 5
 - クリーンアーキテクチャで、画面・ユースケース・ドメイン・DB の層に分けています
@@ -18,9 +18,9 @@ ABR（アドレス・ベース・レジストリ）の住居表示-住居マス�
 | 町字「西」 | 0.84〜0.85 秒 | 0.022〜0.024 秒 |
 | 条件なし | 0.26 秒 | 0.014〜0.018 秒 |
 
-- 開発モード（`npm run dev`）では、Elasticsearch 検索が 0.077〜0.10 秒でした。開発モードは 1 回の表示ごとに 0.06〜0.08 秒ほど余計にかかるためで、本番モードにすると無くなります
+- 開発モード（`npm run dev`）では、Elasticsearch 検索が 0.077〜0.10 秒でした。開発モードは 1 回の表示ごとに 0.06〜0.08 秒ほど余計にかかるためで、本番モードではこの分がかかりません
 
-- DB 検索は `city LIKE '%町田%'` のような部分一致です。前に `%` が付く LIKE は MySQL のインデックスでは速くならないので、毎回 175 万行を全部読みます
+- DB 検索は `city LIKE '%町田%'` のような部分一致です。前に `%` が付く LIKE は MySQL のインデックスが効かないので、毎回約 175 万行をすべて読みます
 - Elasticsearch 検索は、abr-batch の `npm run es:index` で作った検索用のインデックスから探します。条件の意味と画面は DB 検索と同じです
 - 詳しくは下の「[Elasticsearch 検索](#elasticsearch-検索)」を参照
 
@@ -47,13 +47,13 @@ npm run dev          # http://127.0.0.1:3000
 
 ## Elasticsearch 検索
 
-DB 検索（`/`）はそのまま残して、Elasticsearch で探す一覧（`/es`）を別に作りました。上のメニューで切り替えられ、それぞれの画面に「同じ条件で〜検索」のリンクがあります。
+DB 検索（`/`）はそのまま残して、Elasticsearch で探す一覧（`/es`）を別に作りました。上のメニューで切り替えられます。それぞれの画面には、もう一方で同じ条件を検索するリンク（「同じ条件で DB 検索」「同じ条件で Elasticsearch 検索」）があります。
 
-- **中身は `npm run es:index` を実行した時点の DB のコピー**です。画面に作成日時を出しています。この画面から編集・削除すると DB は変わりますが、Elasticsearch は次に `es:index` を実行するまで古いままです。食い違ったときは、DB 検索の画面と見比べてください
-- **ページ送りは「最初へ・前へ・次へ・最後へ」**で、ページ番号はありません。Elasticsearch は、先頭から 10,000 件より先へページ番号で進めないため、主キーの続きから取る方法（search_after）にしました
-- **文字の扱いは MySQL に合わせています**：MySQL（utf8mb4_unicode_ci）は全角と半角、ひらがなとカタカナ、濁点の有無などを同じ文字として扱います。Elasticsearch でも同じ結果になるよう、入れる側（abr-batch の `src/lib/fold.ts`）と探す側（[src/infrastructure/elasticsearch/fold.ts](src/infrastructure/elasticsearch/fold.ts)）で同じように文字をそろえています。処理の中身は abr-batch と同じです。直すときは abr-batch と、ほかの版の同じ処理もすべて直します
+- **中身は `npm run es:index` を実行した時点の DB のコピー**です。画面に作成日時を出しています。アプリで編集・削除すると DB は変わりますが、Elasticsearch の中身は次に `es:index` を実行するまで古いままです。結果が食い違ったときは、DB 検索の画面と見比べてください
+- **ページ送りは「最初へ・前へ・次へ・最後へ」**で、ページ番号はありません。Elasticsearch は、先頭から 10,000 件より先へページ番号で進めないため、前のページの最後の行の主キーを渡して、その続きから取る方法（search_after）にしました
+- **文字の扱いは MySQL に合わせています**：MySQL（utf8mb4_unicode_ci）は全角と半角、ひらがなとカタカナ、濁点の有無などを同じ文字として扱います。Elasticsearch でも同じ結果になるよう、入れる側（abr-batch の `src/lib/fold.ts`）と探す側（[src/infrastructure/elasticsearch/fold.ts](src/infrastructure/elasticsearch/fold.ts)）で同じように文字をそろえています。処理の中身は abr-batch と同じにしています。直すときは、abr-batch とほかの版の同じ処理も、あわせて直します
 - **層の分け方**：検索用インデックスのインターフェース（`RsdtSearchIndex`）を domain に、ページ送りの考え方（`SearchRsdtEs`）を application に、Elasticsearch への接続（`ElasticsearchRsdtSearchIndex`）を infrastructure に置きました。そのため、ページ送りはメモリ上のインデックスでテストできます
-- 公式のクライアントは入れず、fetch で REST API を呼びます。接続先は `.env` の `ES_URL`（無ければ `http://127.0.0.1:9200`）。接続できないときは、画面にエラーの文を出します
+- 公式のクライアントは入れず、fetch で REST API を呼びます。接続先は `.env` の `ES_URL` です（書かなければ `http://127.0.0.1:9200`）。接続できないときは、画面にエラーメッセージを出します
 
 ## 構成（クリーンアーキテクチャ）
 
@@ -94,11 +94,11 @@ npm run test:db   # 本物の DB と Elasticsearch を使うテスト（abr-batc
 ## 作ってみて分かったこと
 
 - **部分一致は遅め**：`LIKE '%…%'` はインデックスが効かないので、件数を数えるために全件を読みます。「世田谷」で検索して約 1 秒でした
-- **Prisma の `contains` は `%` と `_` をそのまま `LIKE` に渡す**：「%」で検索すると全件が出ました。`\%`・`\_` に置き換えています
-- **Cache Components（Next.js 16 の既定）では、DB を読む前に `await connection()` が要る**：無いと、先読みのときに mariadb ドライバーの中の `Date.now()` で「prerender 中に変わる値を使った」というエラーになりました
+- **Prisma の `contains` は `%` と `_` をそのまま `LIKE` に渡す**：そのままでは「%」で検索すると全件が出たので、`\%`・`\_` に置き換えています
+- **Cache Components（`next.config.ts` の `cacheComponents: true` で有効にしている）では、DB を読む前に `await connection()` が要る**：無いと、先読みのときに mariadb ドライバーの中の `Date.now()` で「prerender 中に変わる値を使った」というエラーになりました
 - **`usePathname` を使う部品は、`Suspense` で囲まないと `next build` が失敗する**：Cache Components では、ページを前もって作るときに URL が決まらないためです。`next dev` ではエラーにならないので、気づくのが遅れました。上のメニュー（`src/components/nav.tsx`）は、URL が決まるまでは、どれも目立たせない形で出しています
-- **主キーの URL**：5 列を `_` でつないで 1 つにしています（例：`/rsdt/131016_0001001_006_001_`）。`rsdt2_id` は空のことが多いので、末尾が `_` で終わります
+- **主キーの URL**：主キーの 5 列を `_` でつないで 1 つの文字列にしています（例：`/rsdt/131016_0001001_006_001_`）。`rsdt2_id` は空のことが多いので、末尾が `_` で終わります
 - **項目名**：画面の項目名は CSV の列名のままです（日本語名の公式資料を確かめられていないため）
-- **`blk_num`・`rsdt_num` は完全一致**：値はすべて半角数字なので、部分一致だと「1」で 10・21 なども出てしまうため
+- **`blk_num`・`rsdt_num` は完全一致**：値は番号なので、部分一致だと「1」で 10・21 なども出てしまいます
 - **丁目の書き方が 2 通りある**：`chome` は「一丁目」（漢数字、478,708 件）と「３丁目」（全角数字、1,217,002 件）が混ざっています。全角と半角はテーブルの照合順序（`utf8mb4_unicode_ci`）で同じ文字として扱われるので「3」でも「３丁目」が見つかりますが、「三丁目」は見つかりません
-- **時刻は日本時間**：`package.json` の `dev`・`build`・`start`・`test` に `TZ=Asia/Tokyo` を付けています。書かなくても PC（WSL）の設定で日本時間になりますが、PC の設定に頼らないためです。DATE 列は、日付がずれないように「UTC の 0 時」として読み書きしています（`prisma-rsdt-repository.ts`）。DB（MySQL）の時刻は UTC のままです
+- **時刻は日本時間**：`package.json` の `dev`・`build`・`start`・`test` に `TZ=Asia/Tokyo` を付けています。書かなくても今の PC（WSL）の設定では日本時間になりますが、PC の設定が変わっても同じに動くように、書いています。DATE 列は、日付がずれないように「UTC の 0 時」として読み書きしています（`src/infrastructure/rsdt/prisma-rsdt-repository.ts`）。DB（MySQL）の時刻は UTC のままです
