@@ -10,7 +10,7 @@ description: abr-web-ts（住居表示-住居マスターを検索・一覧・�
 - Next.js 16.4.6（App Router、**Cache Components と Partial Prefetching が有効**）＋ Prisma 7.10.1（mariadb アダプター）＋ Tailwind CSS 4 ＋ Vitest 5.1.1
 - DB は **abr-batch の MySQL を共用**（ポート 3307、テーブル `mt_rsdtdsp_rsdt`、1,752,573 件）。このリポジトリではマイグレーションしない。`prisma/schema.prisma` は abr-batch と同じ定義
 - サーバーは `127.0.0.1:3000` だけで待ち受ける（`npm run dev` / `npm run start` に `-H 127.0.0.1` を付けてある）
-- 勉強用に、同じものを Rails・Laravel でも作る予定。ユースケース（検索・取得・更新・削除）とリポジトリの形をそろえると比べやすい
+- 勉強用に、同じものを Rails・Laravel・Symfony・Spring Boot でも作ってある（README の「ほかの版」）。ユースケース（検索・取得・更新・削除）とリポジトリの形をそろえると比べやすい
 - Next.js 16 は学習データと違う所が多い。書く前に `node_modules/next/dist/docs/` の該当ページを読む（`AGENTS.md` の指示）
 - 時刻は日本時間（`package.json` のスクリプトに `TZ=Asia/Tokyo`）。DATE 列は「UTC の 0 時」として読み書きする（日付をずらさないため。ここは変えない）
 
@@ -20,9 +20,9 @@ description: abr-web-ts（住居表示-住居マスターを検索・一覧・�
 
 | 層 | 場所 | 書くもの | 読み込んではいけないもの |
 |---|---|---|---|
-| domain | `src/domain/rsdt/` | 型、主キー、入力チェック、リポジトリのインターフェース、エラー | Next.js・Prisma・ほかの層 |
+| domain | `src/domain/rsdt/` | 型、主キー、入力チェック、リポジトリのインターフェース、検索用インデックスのインターフェース、エラー | Next.js・Prisma・ほかの層 |
 | application | `src/application/rsdt/` | ユースケース（クラス、コンストラクターでリポジトリを受け取る） | Next.js・Prisma・infrastructure・presentation |
-| infrastructure | `src/infrastructure/` | Prisma での実装、Prisma の型 ⇔ エンティティの変換、Prisma のエラーの変換 | Next.js |
+| infrastructure | `src/infrastructure/` | Prisma での実装、Prisma の型 ⇔ エンティティの変換、Prisma のエラーの変換、Elasticsearch での実装（fetch で REST API を呼ぶ）、文字をそろえる処理（`elasticsearch/fold.ts`） | Next.js |
 | presentation | `src/presentation/` | URL・フォーム・表示形式の変換（Next.js に依存しない純粋な関数） | Prisma |
 | 画面 | `src/app/`・`src/components/` | 受け取る → ユースケースを呼ぶ → 表示・redirect | Prisma・infrastructure（`@/composition-root` から受け取る） |
 
@@ -41,10 +41,11 @@ grep -rln "prisma\|@/infrastructure" src/app src/components || echo OK
 
 1. `domain/rsdt/rsdt-repository.ts` の `RsdtSearchCriteria` と `EMPTY_CRITERIA`
 2. `infrastructure/rsdt/prisma-rsdt-repository.ts` の `buildWhere`
-3. `presentation/search-params.ts` の `PARAM_NAMES`（URL の名前）と `MAX_LENGTH`
-4. `app/search-form.tsx` の入力欄
-5. `test/in-memory-rsdt-repository.ts` の `match`
-6. テスト（`search-params.test.ts`・`prisma-rsdt-repository.test.ts`・`.db.test.ts`）と README
+3. `infrastructure/rsdt/elasticsearch-rsdt-search-index.ts` の `WILDCARD_FIELDS`（部分一致）か `EXACT_FIELDS`（完全一致）
+4. `presentation/search-params.ts` の `PARAM_NAMES`（URL の名前）と `MAX_LENGTH`
+5. `app/search-form.tsx` の入力欄
+6. `test/in-memory-rsdt-repository.ts` の `match`
+7. テスト（`search-params.test.ts`・`prisma-rsdt-repository.test.ts`・`.db.test.ts`）と README
 
 部分一致か完全一致かは、**値を見てから決める**。`blk_num`・`rsdt_num` は全件が半角数字なので完全一致にした（部分一致だと「1」で 10・21 も出る）。
 
@@ -52,7 +53,7 @@ grep -rln "prisma\|@/infrastructure" src/app src/components || echo OK
 
 ```bash
 npm test          # DB を使わない（約 0.3 秒）
-npm run test:db   # 本物の DB を使う（約 3 秒）。書き換えはトランザクションで取り消す
+npm run test:db   # 本物の DB と Elasticsearch を使う（約 3 秒）。書き換えはトランザクションで取り消す
 npx tsc --noEmit && npm run lint
 npm run build
 ```
@@ -126,5 +127,5 @@ P=$(ss -ltnp | grep :3000 | grep -o 'pid=[0-9]*' | cut -d= -f2); [ -n "$P" ] && 
 - README は入口（できること・動かし方・構成・テスト・作ってみて分かったこと）。起動と停止は `docs/start-stop.md`
 - 仕様を変えたら、README の「できること」「作ってみて分かったこと」も直す
 - コミットと push は、ユーザーの了解を取ってから。メッセージは日本語で、最後に `Co-Authored-By` の行を付ける
-- リポジトリは GitHub の**非公開**リポジトリ（abr-batch は公開）。abr-batch 側から abr-web-ts に触れない
+- リポジトリは GitHub の**公開**リポジトリ（abr-batch も公開）。abr-batch 側から abr-web-ts に触れない
 - `.env`・`node_modules`・`src/generated/`・`.next/` は Git に入れない。コミットの前に、個人情報（本名・メールアドレスなど）が入っていないか確かめる
