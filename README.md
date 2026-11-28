@@ -103,3 +103,14 @@ npm run test:db   # 本物の DB と Elasticsearch を使うテスト（abr-batc
 - **`blk_num`・`rsdt_num` は完全一致**：値は番号なので、部分一致だと「1」で 10・21 なども出てしまいます
 - **丁目の書き方が 2 通りある**：`chome` は「一丁目」（漢数字、478,708 件）と「３丁目」（全角数字、1,217,002 件）が混ざっています。全角と半角はテーブルの照合順序（`utf8mb4_unicode_ci`）で同じ文字として扱われるので「3」でも「３丁目」が見つかりますが、「三丁目」は見つかりません
 - **時刻は日本時間**：`package.json` の `dev`・`build`・`start`・`test` に `TZ=Asia/Tokyo` を付けています。書かなくても今の PC（WSL）の設定では日本時間になりますが、PC の設定が変わっても同じに動くように、書いています。DATE 列は、日付がずれないように「UTC の 0 時」として読み書きしています（`src/infrastructure/rsdt/prisma-rsdt-repository.ts`）。DB（MySQL）の時刻は UTC のままです
+
+## 出典・ライセンス
+
+このリポジトリのコードは [MIT License](LICENSE) です。
+
+使うデータは次のとおりです。MIT License は、このデータには当てはまりません。
+
+- 出典：「[アドレス・ベース・レジストリ](https://www.digital.go.jp/policies/base_registry_address)」（デジタル庁）
+- 利用規約：[公共データ利用規約（第1.0版）（PDL1.0）](https://www.digital.go.jp/policies/base_registry_address_tos)
+- データそのものはリポジトリに含めていません。DB と Elasticsearch の中身は、[abr-batch](https://github.com/yamafifa/abr-batch) でこのデータを手元で加工して入れたものです
+- README に載せた件数・計測結果・例は、このデータをもとに yamafifa が作成したものです
