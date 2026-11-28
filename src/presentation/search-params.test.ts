@@ -34,6 +34,19 @@ describe("parseListQuery", () => {
   it("長すぎる入力は切り詰める", () => {
     expect(parseListQuery({ blk: "1".repeat(50) }).criteria.blkNum).toHaveLength(20);
   });
+
+  it("半角カナは全角カナにする（濁点・半濁点は 1 文字にまとめる）", () => {
+    const { criteria } = parseListQuery({ city: "ｶﾞｰﾃﾞﾝ", town: "ﾊﾟｰｸ", chome: "ｳﾞ" });
+    expect([criteria.city, criteria.town, criteria.chome]).toEqual(["ガーデン", "パーク", "ヴ"]);
+  });
+
+  it("半角カナのほかは変えない（全角英数字・丸数字・互換漢字）", () => {
+    expect(parseListQuery({ town: "３Ａ①塚ﾊﾟ" }).criteria.town).toBe("３Ａ①塚パ");
+  });
+
+  it("半角カナを全角にしてから長さで切る", () => {
+    expect(parseListQuery({ chome: "ﾊﾟ".repeat(20) }).criteria.chome).toBe("パ".repeat(20));
+  });
 });
 
 describe("listHref", () => {

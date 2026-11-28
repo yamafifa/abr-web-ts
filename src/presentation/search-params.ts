@@ -16,12 +16,20 @@ const PARAM_NAMES = { city: "city", town: "town", chome: "chome", blkNum: "blk",
 /** 入力の長さの上限（テーブルの列の長さに合わせる） */
 const MAX_LENGTH = { city: 80, town: 80, chome: 20, blkNum: 20, rsdtNum: 20 } as const;
 
-/** URL のクエリを一覧の状態にする。おかしな値は既定値にする */
+/**
+ * 半角カナ（U+FF61〜U+FF9F）だけを全角カナにする（「ﾊﾟ」→「パ」）。ほかの文字は変えない
+ * - MySQL は「ﾊﾟ」を「ﾊ」と「ﾟ」の 2 文字として探すので、Elasticsearch 検索（fold で 1 文字にする）と件数が合わなくなるため
+ * - NFKC を全体にかけると、互換漢字（例：U+FA10 の「塚」）や「①」まで変わるので、半角カナの並びにだけかける
+ * - ほかの版（abr-web-rails・abr-web-laravel・abr-web-symfony・abr-web-spring）と abr-batch の es:verify にも同じ処理がある。直すときはすべてを直す
+ */
+export const zenkakuKana = (s: string): string => s.replace(/[｡-ﾟ]+/g, (m) => m.normalize("NFKC"));
+
+/** URL のクエリを一覧の状態にする。おかしな値は既定値にする。半角カナは全角カナにする */
 export function parseListQuery(sp: RawParams): ListQuery {
   const criteria = Object.fromEntries(
     (Object.keys(PARAM_NAMES) as (keyof RsdtSearchCriteria)[]).map((k) => [
       k,
-      first(sp[PARAM_NAMES[k]]).slice(0, MAX_LENGTH[k]),
+      zenkakuKana(first(sp[PARAM_NAMES[k]])).slice(0, MAX_LENGTH[k]),
     ]),
   ) as RsdtSearchCriteria;
   const per = Number(first(sp.per));
